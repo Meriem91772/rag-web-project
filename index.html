@@ -1,149 +1,737 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RAG Explorer — Render</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f7f4f2;
-      color: #222;
-    }
-    .container {
-      max-width: 850px;
-      margin: 50px auto;
-      padding: 25px;
-    }
-    h1 { color: #7b1e3a; }
-    p { color: #555; line-height: 1.6; }
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      padding: 15px;
-      font-size: 16px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      resize: vertical;
-      box-sizing: border-box;
-    }
-    button {
-      margin-top: 15px;
-      padding: 12px 22px;
-      font-size: 16px;
-      background: #7b1e3a;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    button:hover { background: #5f162c; }
-    button:disabled { background: #aaa; cursor: not-allowed; }
-    .card {
-      margin-top: 25px;
-      padding: 20px;
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-    }
-    .small {
-      font-size: 13px;
-      color: #777;
-      font-family: monospace;
-    }
-    .error { color: #b91c1c; }
-    .success { color: #166534; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Explorer — Interface de comparaison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f7;
+  --surface:#ffffff;
+  --surface2:#f7f8fc;
+  --border:#e2e6ef;
+  --border2:#c9cfdf;
+  --text:#111827;
+  --text2:#4b5563;
+  --text3:#9ca3af;
+  --navy:#0f1f4b;
+  --blue:#1d4ed8;
+  --blue-l:#eff6ff;
+  --blue-m:#3b82f6;
+  --green:#16a34a;
+  --green-l:#f0fdf4;
+  --orange:#d97706;
+  --orange-l:#fffbeb;
+  --red:#dc2626;
+  --red-l:#fef2f2;
+  --purple:#7c3aed;
+  --purple-l:#f5f3ff;
+  --r:10px;
+  --rl:14px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 16px rgba(0,0,0,.08);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.6;min-height:100vh}
+.page{max-width:1280px;margin:0 auto;padding:1.75rem 1.5rem 5rem}
+ 
+/* ── HEADER ── */
+.header-card{
+  background:var(--navy);border-radius:var(--rl);padding:1.75rem 2rem;
+  margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;
+  position:relative;overflow:hidden;
+}
+.header-card::before{content:'';position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;background:rgba(59,130,246,.1);pointer-events:none}
+.htext h1{font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:.35rem;line-height:1.25}
+.htext p{font-size:.82rem;color:rgba(255,255,255,.6);max-width:560px;line-height:1.6}
+.hbadges{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.7rem}
+.hbadge{font-size:.7rem;font-weight:500;padding:.25rem .6rem;border-radius:999px;display:inline-flex;align-items:center;gap:.3rem}
+.hb-blue{background:rgba(59,130,246,.2);color:#93c5fd}
+.hb-green{background:rgba(20,184,166,.2);color:#5eead4}
+.hb-gray{background:rgba(255,255,255,.1);color:rgba(255,255,255,.65)}
+.api-status{
+  display:flex;align-items:center;gap:.5rem;font-size:.75rem;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r);padding:.5rem .9rem;flex-shrink:0;cursor:pointer;
+  color:rgba(255,255,255,.75);transition:background .2s;white-space:nowrap;
+}
+.api-status:hover{background:rgba(255,255,255,.12)}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#4ade80;box-shadow:0 0 6px #4ade80}
+.dot-err{background:#f87171;box-shadow:0 0 6px #f87171}
+.dot-idle{background:#94a3b8}
+ 
+/* ── SECTIONS ── */
+.section{margin-bottom:1.75rem}
+.sec-head{display:flex;align-items:center;gap:.65rem;margin-bottom:.85rem}
+.sec-num{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0}
+.sec-label{font-size:.75rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text2)}
+.sec-line{flex:1;height:1px;background:var(--border)}
+ 
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:var(--sh)}
+.cp{padding:1.4rem}
+ 
+/* ── QUESTION ZONE ── */
+.q-textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:var(--r);
+  padding:.8rem 1rem;font-size:.92rem;font-family:'Inter',sans-serif;
+  color:var(--text);background:var(--surface);resize:vertical;
+  outline:none;transition:border-color .2s,box-shadow .2s;min-height:60px;
+}
+.q-textarea:focus{border-color:var(--blue-m);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.q-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.8rem}
+.btn-run{
+  display:inline-flex;align-items:center;gap:.45rem;
+  background:var(--blue);color:#fff;border:none;border-radius:var(--r);
+  padding:.65rem 1.3rem;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+  transition:background .2s,box-shadow .2s,transform .1s;
+}
+.btn-run:hover:not(:disabled){background:#1e40af;box-shadow:0 4px 14px rgba(29,78,216,.3)}
+.btn-run:active:not(:disabled){transform:scale(.97)}
+.btn-run:disabled{background:#94a3b8;cursor:not-allowed}
+.btn-clear{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:transparent;color:var(--text2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:.6rem .9rem;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;
+  transition:all .2s;
+}
+.btn-clear:hover{border-color:var(--blue-m);color:var(--blue);background:var(--blue-l)}
+.examples-row{margin-top:.65rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.ex-label{font-size:.75rem;color:var(--text3)}
+.ex-btn{
+  font-size:.75rem;padding:.28rem .7rem;border-radius:999px;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
+  cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;
+}
+.ex-btn:hover{border-color:var(--blue-m);color:var(--blue);background:var(--blue-l)}
+ 
+/* ── PROGRESS ── */
+.prog-bar{height:3px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:1.5rem;display:none}
+.prog-bar.on{display:block}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue-m),#06b6d4);width:0;transition:width .35s ease;border-radius:3px}
+ 
+/* ── 3-COL GRID ── */
+.three-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem}
+@media(max-width:900px){.three-grid{grid-template-columns:1fr}}
+ 
+/* ── RAG COLUMN ── */
+.rag-col{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;box-shadow:var(--sh)}
+.rag-col-head{padding:.85rem 1.1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.rh-naive{background:#fff8f0;border-bottom-color:#fde8c8}
+.rh-improved{background:#f0fdf9;border-bottom-color:#a7f3d0}
+.rh-rerank{background:var(--purple-l);border-bottom-color:#ddd6fe}
+.rag-col-title{font-size:.8rem;font-weight:700}
+.rct-naive{color:#92400e}
+.rct-improved{color:#065f46}
+.rct-rerank{color:#5b21b6}
+.risk-pill{font-size:.68rem;font-weight:600;padding:.22rem .55rem;border-radius:999px}
+.rp-low{background:var(--green-l);color:var(--green)}
+.rp-medium{background:var(--orange-l);color:var(--orange)}
+.rp-high{background:var(--red-l);color:var(--red)}
+.rp-none{background:var(--surface2);color:var(--text3)}
+.rag-col-body{padding:1.1rem;background:var(--surface);display:flex;flex-direction:column;gap:.85rem}
+.answer-block{
+  font-size:.85rem;color:var(--text);line-height:1.7;
+  border-left:3px solid var(--border2);padding:.5rem .8rem;
+  background:var(--surface2);border-radius:0 6px 6px 0;
+}
+.ab-naive{border-left-color:#f59e0b}
+.ab-improved{border-left-color:#10b981}
+.ab-rerank{border-left-color:#8b5cf6}
+.field-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:.3rem}
+.source-list{display:flex;flex-direction:column;gap:.35rem}
+.source-item{
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:.35rem .6rem;color:var(--text2);word-break:break-all;
+}
+.score-row{display:flex;align-items:center;gap:.6rem}
+.score-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:600}
+.sv-green{color:var(--green)}.sv-orange{color:var(--orange)}.sv-red{color:var(--red)}.sv-blue{color:var(--blue-m)}
+.score-bar-bg{flex:1;height:5px;border-radius:3px;background:var(--border);overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px;transition:width .7s ease}
+.sbf-green{background:var(--green)}.sbf-orange{background:var(--orange)}.sbf-red{background:var(--red)}.sbf-blue{background:var(--blue-m)}
+ 
+/* ── METRICS ── */
+.metrics-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.9rem}
+@media(max-width:900px){.metrics-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:500px){.metrics-grid{grid-template-columns:repeat(2,1fr)}}
+.metric-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:1rem 1.1rem;box-shadow:var(--sh);
+}
+.mc-label{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:.4rem}
+.mc-val{font-size:1.4rem;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;margin-bottom:.2rem}
+.mc-sub{font-size:.72rem;color:var(--text3)}
+.mc-bar-bg{height:4px;border-radius:2px;background:var(--border);margin-top:.7rem}
+.mc-bar-fill{height:100%;border-radius:2px;transition:width .8s ease}
+ 
+/* ── COMPARE TABLE ── */
+.cmp-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.cmp-table th,.cmp-table td{padding:.6rem .85rem;border-bottom:1px solid var(--border);text-align:left}
+.cmp-table th{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);background:var(--surface2)}
+.cmp-table tr:last-child td{border-bottom:none}
+.cmp-table tr:hover td{background:var(--surface2)}
+td.td-good{color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600}
+td.td-mid{color:var(--orange);font-family:'JetBrains Mono',monospace;font-weight:600}
+td.td-bad{color:var(--red);font-family:'JetBrains Mono',monospace;font-weight:600}
+td.td-purple{color:var(--purple);font-family:'JetBrains Mono',monospace;font-weight:600}
+td.td-mono{font-family:'JetBrains Mono',monospace}
+ 
+/* ── DEBUG ── */
+.debug-toggle{
+  display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;cursor:pointer;
+  color:var(--text3);border:1px solid var(--border);background:var(--surface);
+  border-radius:var(--r);padding:.35rem .75rem;font-family:'Inter',sans-serif;
+  transition:all .2s;
+}
+.debug-toggle:hover{color:var(--blue);border-color:var(--blue-m);background:var(--blue-l)}
+.debug-box{
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;
+  background:#0f172a;color:#94a3b8;border-radius:var(--r);
+  padding:1rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all;
+  border:1px solid #1e293b;margin-top:.75rem;max-height:320px;overflow-y:auto;
+  display:none;line-height:1.6;
+}
+.debug-box .json-key{color:#7dd3fc}
+.debug-box .json-str{color:#86efac}
+.debug-box .json-num{color:#fcd34d}
+.debug-box .json-bool{color:#f9a8d4}
+.debug-box .json-null{color:#94a3b8}
+ 
+/* ── ERROR BOX ── */
+.error-box{
+  background:var(--red-l);border:1px solid #fca5a5;border-radius:var(--r);
+  padding:1rem 1.2rem;font-size:.85rem;color:var(--red);line-height:1.65;
+  display:none;margin-bottom:1.5rem;
+}
+.error-box strong{display:block;margin-bottom:.3rem}
+ 
+/* ── PLACEHOLDER ── */
+.placeholder{text-align:center;padding:2.5rem 1rem;color:var(--text3)}
+.ph-icon{font-size:2.2rem;margin-bottom:.6rem;opacity:.35}
+ 
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.anim{animation:fadeUp .4s ease forwards}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.spin{animation:spin .7s linear infinite;display:inline-block}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>🧠 RAG Explorer</h1>
-    <p>
-      Interface déployable sur Render Free. Le backend est volontairement léger :
-      pas de torch, pas de transformers, pas de sentence-transformers.
-    </p>
-
-    <div class="card">
-      <textarea id="question" placeholder="Pose ta question ici... Exemple : C'est quoi le re-ranking dans un RAG ?"></textarea>
-      <br>
-      <button id="askBtn" onclick="askQuestion()">Lancer</button>
-      <button onclick="checkAPI()">Tester l'API</button>
-      <p id="status" class="small"></p>
-    </div>
-
-    <div class="card">
-      <h2>Réponse</h2>
-      <p id="answer">La réponse apparaîtra ici.</p>
-
-      <h3>Contexte retrouvé</h3>
-      <p id="context" class="small">—</p>
-
-      <h3>Score</h3>
-      <p id="score" class="small">—</p>
+<div class="page">
+ 
+<!-- ── HEADER ── -->
+<div class="header-card">
+  <div class="htext">
+    <h1>🧠 RAG Explorer — Comparaison des approches</h1>
+    <p>Interface de comparaison entre RAG naïf, RAG hybride amélioré et RAG avec re-ranking sémantique + keyword. Connectée à votre backend FastAPI via tunnel SSH.</p>
+    <div class="hbadges">
+      <span class="hbadge hb-blue">📡 API 127.0.0.1:8000</span>
+      <span class="hbadge hb-green">📊 RAGAS metrics</span>
+      <span class="hbadge hb-gray">Meriem EL ABZAZE · 2026</span>
     </div>
   </div>
-
-  <script>
-    const API_BASE = window.location.hostname
-      ? window.location.origin
-      : "http://127.0.0.1:8000";
-
-    async function checkAPI() {
-      const status = document.getElementById("status");
-      status.textContent = "Test en cours...";
-      status.className = "small";
-
-      try {
-        const response = await fetch(`${API_BASE}/health`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        status.textContent = `API connectée : ${data.status}`;
-        status.className = "small success";
-      } catch (error) {
-        status.textContent = "API inaccessible : " + error.message;
-        status.className = "small error";
-      }
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0">
+    <button class="api-status" id="statusBtn" onclick="checkAPI()" title="Cliquer pour tester la connexion">
+      <div class="status-dot dot-idle" id="statusDot"></div>
+      <span id="statusLabel">Tester l'API</span>
+    </button>
+    <div style="font-size:.68rem;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace">ssh -L 8000:localhost:8000<br>projet12@156.18.90.97</div>
+  </div>
+</div>
+ 
+<!-- ── ZONE 1: QUESTION ── -->
+<div class="section">
+  <div class="sec-head">
+    <div class="sec-num">1</div>
+    <span class="sec-label">Question utilisateur</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="card cp">
+    <textarea class="q-textarea" id="qInput" rows="2"
+      placeholder="Posez votre question… ex: Comment réduire les hallucinations dans un système RAG ?"></textarea>
+    <div class="q-row">
+      <button class="btn-run" id="runBtn" onclick="launch()">▶ Lancer la recherche</button>
+      <button class="btn-clear" onclick="clearAll()">✕ Réinitialiser</button>
+    </div>
+    <div class="examples-row">
+      <span class="ex-label">Exemples :</span>
+      <button class="ex-btn" onclick="setQ(this)">Comment réduire les hallucinations dans un système RAG ?</button>
+      <button class="ex-btn" onclick="setQ(this)">Qu'est-ce que le re-ranking dans un pipeline RAG ?</button>
+      <button class="ex-btn" onclick="setQ(this)">Quelle est la différence entre BM25 et les embeddings ?</button>
+      <button class="ex-btn" onclick="setQ(this)">Comment évaluer la fidélité d'un système RAG ?</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ── PROGRESS ── -->
+<div class="prog-bar" id="progBar"><div class="prog-fill" id="progFill"></div></div>
+ 
+<!-- ── ERROR ── -->
+<div class="error-box" id="errBox">
+  <strong>⚠ Impossible de contacter l'API</strong>
+  <span id="errMsg"></span>
+  <div style="margin-top:.5rem;font-size:.78rem;opacity:.8">
+    Vérifiez que : 1) le tunnel SSH est ouvert (<code>ssh -L 8000:localhost:8000 projet12@156.18.90.97</code>)
+    · 2) uvicorn tourne sur le serveur · 3) pas de CORS bloqué (ajoutez <code>allow_origins=["*"]</code> dans FastAPI)
+  </div>
+</div>
+ 
+<!-- ── ZONE 2: COMPARAISON ── -->
+<div class="section" id="zone2" style="display:none">
+  <div class="sec-head">
+    <div class="sec-num">2</div>
+    <span class="sec-label">Comparaison des trois approches RAG</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="three-grid" id="ragGrid"></div>
+</div>
+ 
+<!-- ── ZONE 3: METRICS ── -->
+<div class="section" id="zone3" style="display:none">
+  <div class="sec-head">
+    <div class="sec-num">3</div>
+    <span class="sec-label">Métriques d'évaluation (RAG amélioré)</span>
+    <div class="sec-line"></div>
+  </div>
+  <div id="metricsArea"></div>
+</div>
+ 
+<!-- ── ZONE 4: DEBUG ── -->
+<div class="section" id="zone4" style="display:none">
+  <div class="sec-head">
+    <div class="sec-num">4</div>
+    <span class="sec-label">Debug — JSON brut reçu</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="card cp">
+    <button class="debug-toggle" onclick="toggleDebug()">
+      <span id="debugArrow">▶</span> Afficher le JSON brut de l'API
+    </button>
+    <pre class="debug-box" id="debugBox"></pre>
+  </div>
+</div>
+ 
+</div><!-- /page -->
+ 
+<script>
+/* ─────────────────────────────────────────
+   CONFIG
+───────────────────────────────────────── */
+const API_URL = 'http://127.0.0.1:8000/ask';
+ 
+/* ─────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────── */
+function setQ(btn){ document.getElementById('qInput').value = btn.textContent.trim() }
+ 
+function scoreColor(v, type='text'){
+  if(v===null||v===undefined||isNaN(v)) return type==='bar'?'sbf-blue':'sv-blue';
+  const n = parseFloat(v);
+  if(n >= 0.75) return type==='bar'?'sbf-green':'sv-green';
+  if(n >= 0.5)  return type==='bar'?'sbf-orange':'sv-orange';
+  return type==='bar'?'sbf-red':'sv-red';
+}
+ 
+function riskPill(risk){
+  if(!risk) return '<span class="risk-pill rp-none">—</span>';
+  const r = risk.toLowerCase();
+  if(r==='low')    return '<span class="risk-pill rp-low">🟢 Faible</span>';
+  if(r==='medium') return '<span class="risk-pill rp-medium">🟡 Moyen</span>';
+  if(r==='high')   return '<span class="risk-pill rp-high">🔴 Élevé</span>';
+  return `<span class="risk-pill rp-none">${risk}</span>`;
+}
+ 
+function fmt(v){ return (v===null||v===undefined)?'—':parseFloat(v).toFixed(2) }
+ 
+function parseSources(raw){
+  /* Accepte :
+     - string "rag pdf3.pdf p30 hybrid=1.229 | rag pdf3.pdf p22 hybrid=1.206"
+     - array ["…","…"]
+     - undefined / null
+  */
+  if(!raw) return [];
+  if(Array.isArray(raw)) return raw;
+  return raw.split('|').map(s=>s.trim()).filter(Boolean);
+}
+ 
+/* Syntaxe JSON colorée (simple) */
+function colorJson(json){
+  return json
+    .replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(?=\s*:))/g,'<span class="json-key">$1</span>')
+    .replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*")/g,'<span class="json-str">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g,'<span class="json-num">$1</span>')
+    .replace(/\b(true|false)\b/g,'<span class="json-bool">$1</span>')
+    .replace(/\bnull\b/g,'<span class="json-null">null</span>');
+}
+ 
+/* ─────────────────────────────────────────
+   TRANSFORM — adapté EXACTEMENT au JSON de l'API
+───────────────────────────────────────── */
+function transformAPIResponse(raw){
+  const n  = raw.naive_rag    || {};
+  const im = raw.improved_rag || {};
+  const rr = raw.rerank_rag   || {};
+ 
+  return {
+    question: raw.question || '',
+    naive: {
+      answer:            n.answer            || '(réponse non disponible)',
+      source:            n.source            || null,
+      page:              n.page              || null,
+      similarity_score:  n.similarity_score  !== undefined ? parseFloat(n.similarity_score) : null,
+      hallucination_risk:n.hallucination_risk|| null,
+    },
+    improved: {
+      answer:            im.answer           || '(réponse non disponible)',
+      sources:           parseSources(im.sources),
+      hallucination_risk:im.hallucination_risk|| null,
+      faithfulness:      im.faithfulness      !== undefined ? parseFloat(im.faithfulness)      : null,
+      answer_relevancy:  im.answer_relevancy  !== undefined ? parseFloat(im.answer_relevancy)  : null,
+      context_precision: im.context_precision !== undefined ? parseFloat(im.context_precision)  : null,
+    },
+    rerank: {
+      answer:  rr.answer  || '(réponse non disponible)',
+      sources: parseSources(rr.sources),
     }
-
-    async function askQuestion() {
-      const question = document.getElementById("question").value.trim();
-      const answerElem = document.getElementById("answer");
-      const contextElem = document.getElementById("context");
-      const scoreElem = document.getElementById("score");
-      const btn = document.getElementById("askBtn");
-
-      if (!question) {
-        answerElem.textContent = "Veuillez saisir une question.";
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = "Recherche...";
-      answerElem.textContent = "Chargement...";
-      contextElem.textContent = "—";
-      scoreElem.textContent = "—";
-
-      try {
-        const response = await fetch(`${API_BASE}/ask`, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({question})
-        });
-
-        if (!response.ok) throw new Error(`Erreur API : ${response.status}`);
-
-        const data = await response.json();
-        answerElem.textContent = data.answer || "Pas de réponse.";
-        contextElem.textContent = data.context || "Pas de contexte.";
-        scoreElem.textContent = data.score !== undefined ? data.score : "Pas de score.";
-      } catch (error) {
-        answerElem.textContent = "Erreur : impossible de contacter l'API. " + error.message;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Lancer";
-      }
+  };
+}
+ 
+/* ─────────────────────────────────────────
+   API STATUS CHECK
+───────────────────────────────────────── */
+async function checkAPI(){
+  const dot   = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  dot.className='status-dot dot-idle'; label.textContent='Vérification…';
+  try{
+    const r = await fetch(API_URL,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({question:'test'}),
+      signal:AbortSignal.timeout(5000)
+    });
+    if(r.ok){ dot.className='status-dot dot-ok'; label.textContent='API connectée ✓' }
+    else     { dot.className='status-dot dot-err'; label.textContent='HTTP '+r.status }
+  } catch(e){
+    dot.className='status-dot dot-err';
+    label.textContent='API inaccessible';
+  }
+}
+ 
+/* ─────────────────────────────────────────
+   PROGRESS BAR
+───────────────────────────────────────── */
+let progTimer=null;
+function startProg(){
+  const bar=document.getElementById('progBar'),fill=document.getElementById('progFill');
+  bar.classList.add('on'); let p=0;
+  progTimer=setInterval(()=>{ p=Math.min(p+Math.random()*10,88); fill.style.width=p+'%' },200);
+}
+function endProg(){
+  clearInterval(progTimer);
+  const fill=document.getElementById('progFill');
+  fill.style.width='100%';
+  setTimeout(()=>{ document.getElementById('progBar').classList.remove('on'); fill.style.width='0' },400);
+}
+ 
+/* ─────────────────────────────────────────
+   MAIN LAUNCH
+───────────────────────────────────────── */
+async function launch(){
+  const q = document.getElementById('qInput').value.trim();
+  if(!q){ document.getElementById('qInput').focus(); return; }
+ 
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin">⏳</span> Recherche en cours…';
+  document.getElementById('errBox').style.display='none';
+  startProg();
+ 
+  try{
+    const res = await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({question:q}),
+      signal:AbortSignal.timeout(60000)   // 60s max (GPU peut être lent)
+    });
+ 
+    if(!res.ok){
+      throw new Error(`Erreur HTTP ${res.status} — ${res.statusText}`);
     }
-  </script>
+ 
+    const raw  = await res.json();
+    const data = transformAPIResponse(raw);
+ 
+    endProg();
+    renderAll(data, raw);
+ 
+  } catch(e){
+    endProg();
+    const box=document.getElementById('errBox');
+    document.getElementById('errMsg').textContent=e.message;
+    box.style.display='block';
+    ['zone2','zone3','zone4'].forEach(id=>document.getElementById(id).style.display='none');
+  } finally{
+    btn.disabled=false;
+    btn.innerHTML='▶ Lancer la recherche';
+  }
+}
+ 
+/* ─────────────────────────────────────────
+   RENDER
+───────────────────────────────────────── */
+function renderAll(data, raw){
+  renderRAGGrid(data);
+  renderMetrics(data.improved);
+  renderDebug(raw);
+ 
+  ['zone2','zone3','zone4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.style.display='block'; el.style.opacity='0'; el.style.transform='translateY(8px)';
+    setTimeout(()=>{
+      el.style.transition='opacity .4s ease,transform .4s ease';
+      el.style.opacity='1'; el.style.transform='translateY(0)';
+    }, i*120);
+  });
+  setTimeout(()=>document.getElementById('zone2').scrollIntoView({behavior:'smooth',block:'start'}),200);
+}
+ 
+/* ─── RAG GRID ─── */
+function renderRAGGrid(data){
+  const grid=document.getElementById('ragGrid');
+ 
+  /* helper: source list */
+  function srcList(sources){
+    if(!sources||sources.length===0) return '<span style="font-size:.75rem;color:var(--text3)">—</span>';
+    return '<div class="source-list">'+sources.map(s=>`<div class="source-item">📄 ${s}</div>`).join('')+'</div>';
+  }
+ 
+  /* helper: score row */
+  function scoreRow(label, val){
+    if(val===null||val===undefined) return '';
+    const n=parseFloat(val), pct=Math.min(Math.round(n*100),100);
+    const tc=scoreColor(n,'text'), bc=scoreColor(n,'bar');
+    return `
+    <div>
+      <div class="field-label">${label}</div>
+      <div class="score-row">
+        <span class="score-val ${tc}">${fmt(val)}</span>
+        <div class="score-bar-bg"><div class="score-bar-fill ${bc}" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }
+ 
+  /* ── RAG NAÏF ── */
+  const naiveSrc = data.naive.source
+    ? `${data.naive.source}${data.naive.page?' · page '+data.naive.page:''}`
+    : null;
+ 
+  const colNaive=`
+  <div class="rag-col anim">
+    <div class="rag-col-head rh-naive">
+      <span class="rag-col-title rct-naive">🔶 RAG naïf (baseline)</span>
+      ${riskPill(data.naive.hallucination_risk)}
+    </div>
+    <div class="rag-col-body">
+      <div>
+        <div class="field-label">Réponse générée</div>
+        <div class="answer-block ab-naive">${data.naive.answer}</div>
+      </div>
+      ${naiveSrc?`<div><div class="field-label">Source</div><div class="source-list"><div class="source-item">📄 ${naiveSrc}</div></div></div>`:''}
+      ${scoreRow('Score de similarité cosinus', data.naive.similarity_score)}
+      <div>
+        <div class="field-label">Caractéristiques</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:#fff8f0;border:1px solid #fde8c8;color:#92400e">Top-1 retrieval</span>
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:#fff8f0;border:1px solid #fde8c8;color:#92400e">Prompt simple</span>
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:#fff8f0;border:1px solid #fde8c8;color:#92400e">Sans re-ranking</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+ 
+  /* ── RAG AMÉLIORÉ ── */
+  const colImproved=`
+  <div class="rag-col anim" style="animation-delay:.08s">
+    <div class="rag-col-head rh-improved">
+      <span class="rag-col-title rct-improved">✅ RAG hybride amélioré</span>
+      ${riskPill(data.improved.hallucination_risk)}
+    </div>
+    <div class="rag-col-body">
+      <div>
+        <div class="field-label">Réponse générée</div>
+        <div class="answer-block ab-improved">${data.improved.answer}</div>
+      </div>
+      <div>
+        <div class="field-label">Sources utilisées (BM25 + embeddings)</div>
+        ${srcList(data.improved.sources)}
+      </div>
+      ${scoreRow('Faithfulness', data.improved.faithfulness)}
+      ${scoreRow('Answer Relevancy', data.improved.answer_relevancy)}
+      ${scoreRow('Context Precision', data.improved.context_precision)}
+      <div>
+        <div class="field-label">Améliorations</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:var(--green-l);border:1px solid #a7f3d0;color:var(--green)">BM25 + embeddings</span>
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:var(--green-l);border:1px solid #a7f3d0;color:var(--green)">Top-k retrieval</span>
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:var(--green-l);border:1px solid #a7f3d0;color:var(--green)">Prompt contraint</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+ 
+  /* ── RAG RE-RANKING ── */
+  const colRerank=`
+  <div class="rag-col anim" style="animation-delay:.16s">
+    <div class="rag-col-head rh-rerank">
+      <span class="rag-col-title rct-rerank">🔮 RAG + Re-ranking</span>
+      <span class="risk-pill rp-low" style="background:var(--purple-l);color:var(--purple);border:none">Sémantique + Keyword</span>
+    </div>
+    <div class="rag-col-body">
+      <div>
+        <div class="field-label">Réponse générée</div>
+        <div class="answer-block ab-rerank">${data.rerank.answer}</div>
+      </div>
+      <div>
+        <div class="field-label">Sources après re-ranking (score final)</div>
+        ${srcList(data.rerank.sources)}
+      </div>
+      <div>
+        <div class="field-label">Technique utilisée</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:var(--purple-l);border:1px solid #ddd6fe;color:var(--purple)">Semantic search</span>
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:var(--purple-l);border:1px solid #ddd6fe;color:var(--purple)">Keyword re-ranking</span>
+          <span style="font-size:.72rem;padding:.2rem .5rem;border-radius:5px;background:var(--purple-l);border:1px solid #ddd6fe;color:var(--purple)">Score hybride final</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+ 
+  grid.innerHTML = colNaive + colImproved + colRerank;
+}
+ 
+/* ─── METRICS ─── */
+function renderMetrics(im){
+  const area=document.getElementById('metricsArea');
+ 
+  function mCard(label, val, sub, delay){
+    if(val===null||val===undefined) return `
+    <div class="metric-card anim" style="animation-delay:${delay}s">
+      <div class="mc-label">${label}</div>
+      <div class="mc-val" style="color:var(--text3);font-size:1rem">—</div>
+      <div class="mc-sub">${sub}</div>
+    </div>`;
+    const n=parseFloat(val), pct=Math.min(Math.round(n*100),100);
+    const tc=scoreColor(n,'text'), bc=scoreColor(n,'bar');
+    return `
+    <div class="metric-card anim" style="animation-delay:${delay}s">
+      <div class="mc-label">${label}</div>
+      <div class="mc-val ${tc}">${fmt(val)}</div>
+      <div class="mc-sub">${sub}</div>
+      <div class="mc-bar-bg"><div class="mc-bar-fill ${bc}" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+ 
+  const nSim = null; // pas de baseline_sim dans les métriques improved
+  const haiku = im.faithfulness!==null && im.answer_relevancy!==null && im.context_precision!==null;
+ 
+  area.innerHTML = `
+  <div class="metrics-grid" style="margin-bottom:1.1rem">
+    ${mCard('Faithfulness','🎯 RAG amélioré','Fidélité au contexte — '+(im.faithfulness!==null?fmt(im.faithfulness):'N/A'), .0)}
+    ${mCard('Faithfulness', im.faithfulness,'Réponse fondée sur les docs',.04)}
+    ${mCard('Answer Relevancy', im.answer_relevancy,'Pertinence de la réponse',.08)}
+    ${mCard('Context Precision', im.context_precision,'Qualité du classement',.12)}
+    ${mCard('Risque halluc.', im.hallucination_risk==='low'?0.9:im.hallucination_risk==='medium'?0.5:0.2,'Estimation du risque',.16)}
+    ${mCard('Sources utilisées', im.sources?im.sources.length/5:null,'Passages récupérés',.20)}
+  </div>
+  <div class="card cp">
+    <table class="cmp-table">
+      <thead><tr>
+        <th>Métrique</th>
+        <th>RAG naïf</th>
+        <th>RAG hybride amélioré</th>
+        <th>RAG re-ranking</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Risque hallucination</td>
+          <td class="td-bad">🔴 Élevé</td>
+          <td class="${im.hallucination_risk==='low'?'td-good':'td-mid'}">${riskPill(im.hallucination_risk).replace(/<[^>]+>/g,'')}</td>
+          <td class="td-good">🟢 Faible (estimé)</td>
+        </tr>
+        <tr>
+          <td>Faithfulness</td>
+          <td class="td-bad">Non mesuré</td>
+          <td class="${im.faithfulness!==null?scoreColor(im.faithfulness,'text').replace('sv-','td-'):''}>${im.faithfulness!==null?fmt(im.faithfulness):'—'}</td>
+          <td class="td-purple">—</td>
+        </tr>
+        <tr>
+          <td>Answer Relevancy</td>
+          <td class="td-bad">Non mesuré</td>
+          <td class="${im.answer_relevancy!==null?scoreColor(im.answer_relevancy,'text').replace('sv-','td-'):''}>${im.answer_relevancy!==null?fmt(im.answer_relevancy):'—'}</td>
+          <td class="td-purple">—</td>
+        </tr>
+        <tr>
+          <td>Context Precision</td>
+          <td class="td-bad">Non mesuré</td>
+          <td class="${im.context_precision!==null?scoreColor(im.context_precision,'text').replace('sv-','td-'):''}>${im.context_precision!==null?fmt(im.context_precision):'—'}</td>
+          <td class="td-purple">—</td>
+        </tr>
+        <tr>
+          <td>Stratégie retrieval</td>
+          <td class="td-mono">Cosinus top-1</td>
+          <td class="td-mono">BM25 + embed hybride</td>
+          <td class="td-mono">Semantic + keyword rerank</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+ 
+/* ─── DEBUG ─── */
+function renderDebug(raw){
+  const box=document.getElementById('debugBox');
+  const pretty=JSON.stringify(raw,null,2);
+  box.innerHTML=colorJson(pretty.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+}
+function toggleDebug(){
+  const box=document.getElementById('debugBox');
+  const arrow=document.getElementById('debugArrow');
+  const open=box.style.display==='block';
+  box.style.display=open?'none':'block';
+  arrow.textContent=open?'▶':'▼';
+}
+ 
+/* ─── CLEAR ─── */
+function clearAll(){
+  document.getElementById('qInput').value='';
+  document.getElementById('errBox').style.display='none';
+  ['zone2','zone3','zone4'].forEach(id=>document.getElementById(id).style.display='none');
+  const dot=document.getElementById('statusDot');
+  const label=document.getElementById('statusLabel');
+  dot.className='status-dot dot-idle'; label.textContent='Tester l\'API';
+}
+ 
+/* ─── KEYBOARD ─── */
+document.getElementById('qInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();launch()}
+});
+ 
+/* Fix: class string concat bug in metrics table */
+/* The scoreColor returns 'sv-green' etc; for td classes we want 'td-good' etc */
+const _scOrig=scoreColor;
+window.tdClass=function(v){
+  if(v===null||v===undefined||isNaN(v))return '';
+  const n=parseFloat(v);
+  if(n>=0.75)return 'td-good';
+  if(n>=0.5) return 'td-mid';
+  return 'td-bad';
+}
+</script>
 </body>
 </html>
