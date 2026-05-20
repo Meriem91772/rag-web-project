@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Explorer — Render</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f4f2;
+      color: #222;
+    }
+    .container {
+      max-width: 850px;
+      margin: 50px auto;
+      padding: 25px;
+    }
+    h1 { color: #7b1e3a; }
+    p { color: #555; line-height: 1.6; }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 15px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px 22px;
+      font-size: 16px;
+      background: #7b1e3a;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover { background: #5f162c; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    .card {
+      margin-top: 25px;
+      padding: 20px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+    .small {
+      font-size: 13px;
+      color: #777;
+      font-family: monospace;
+    }
+    .error { color: #b91c1c; }
+    .success { color: #166534; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 RAG Explorer</h1>
+    <p>
+      Interface déployable sur Render Free. Le backend est volontairement léger :
+      pas de torch, pas de transformers, pas de sentence-transformers.
+    </p>
+
+    <div class="card">
+      <textarea id="question" placeholder="Pose ta question ici... Exemple : C'est quoi le re-ranking dans un RAG ?"></textarea>
+      <br>
+      <button id="askBtn" onclick="askQuestion()">Lancer</button>
+      <button onclick="checkAPI()">Tester l'API</button>
+      <p id="status" class="small"></p>
+    </div>
+
+    <div class="card">
+      <h2>Réponse</h2>
+      <p id="answer">La réponse apparaîtra ici.</p>
+
+      <h3>Contexte retrouvé</h3>
+      <p id="context" class="small">—</p>
+
+      <h3>Score</h3>
+      <p id="score" class="small">—</p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname
+      ? window.location.origin
+      : "http://127.0.0.1:8000";
+
+    async function checkAPI() {
+      const status = document.getElementById("status");
+      status.textContent = "Test en cours...";
+      status.className = "small";
+
+      try {
+        const response = await fetch(`${API_BASE}/health`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        status.textContent = `API connectée : ${data.status}`;
+        status.className = "small success";
+      } catch (error) {
+        status.textContent = "API inaccessible : " + error.message;
+        status.className = "small error";
+      }
+    }
+
+    async function askQuestion() {
+      const question = document.getElementById("question").value.trim();
+      const answerElem = document.getElementById("answer");
+      const contextElem = document.getElementById("context");
+      const scoreElem = document.getElementById("score");
+      const btn = document.getElementById("askBtn");
+
+      if (!question) {
+        answerElem.textContent = "Veuillez saisir une question.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Recherche...";
+      answerElem.textContent = "Chargement...";
+      contextElem.textContent = "—";
+      scoreElem.textContent = "—";
+
+      try {
+        const response = await fetch(`${API_BASE}/ask`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({question})
+        });
+
+        if (!response.ok) throw new Error(`Erreur API : ${response.status}`);
+
+        const data = await response.json();
+        answerElem.textContent = data.answer || "Pas de réponse.";
+        contextElem.textContent = data.context || "Pas de contexte.";
+        scoreElem.textContent = data.score !== undefined ? data.score : "Pas de score.";
+      } catch (error) {
+        answerElem.textContent = "Erreur : impossible de contacter l'API. " + error.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Lancer";
+      }
+    }
+  </script>
+</body>
+</html>
